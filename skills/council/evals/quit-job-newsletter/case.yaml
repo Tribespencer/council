@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: quit-job-newsletter
+expected_outcome: |
+  The council respects the no-research request (meta.research false, no research array
+  entries, the Chair notes the panel argues from principle), still runs three rounds with
+  a red team, produces a scorecard, a verdict with conditions or a dissent, kill criteria,
+  and builds the PDF and replay.

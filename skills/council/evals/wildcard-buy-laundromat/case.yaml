@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: wildcard-buy-laundromat
+expected_outcome: |
+  A sixth wildcard panelist for Codie Sanchez is built from the template using only her
+  public work, seated with id "wildcard" and the wildcard avatar, speaks in all three rounds
+  with a voice distinct from the fixed five, and is included in the scorecard with majority
+  rules adjusted to six voters. Outputs are built.

@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: raise-prices-saas
+expected_outcome: |
+  The council runs all three rounds with five distinct panelist voices plus the Chair,
+  does a research pass with sourced findings, fills a scorecard for every panelist,
+  applies the decision rule, records a dissent and kill criteria, writes a valid
+  session.json, and builds report.pdf and replay.html with scripts/build.py.

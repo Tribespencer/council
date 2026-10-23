@@ -1,0 +1,10 @@
+{
+  "name": "council",
+  "version": "1.0.0",
+  "description": "Five legendary business minds debate your decision over three rounds, with research, a scorecard, a verdict, a PDF and an animated replay.",
+  "author": { "name": "Spencer Tribe" },
+  "homepage": "https://github.com/YOUR_HANDLE/council",
+  "repository": "https://github.com/YOUR_HANDLE/council",
+  "license": "MIT",
+  "keywords": ["business", "decision", "debate", "advisory-board", "hormozi", "bezos", "buffett", "naval", "blakely", "pdf-report"]
+}

@@ -23,7 +23,7 @@ All text fields are plain text. No Markdown inside strings except in `decision.s
   },
   "intake": {
     "one_liner": "the user's original words, verbatim",
-    "clarifications": [ { "q": "...", "a": "..." } ],
+    "clarifications": [ { "q": "...", "a": "..." } ],   // if a question could not be asked, answer starts with "(assumed)" 
     "brief": "3 to 6 sentences the Chair wrote: the business, the decision, the constraints, what the user is leaning toward."
   },
   "cast": [

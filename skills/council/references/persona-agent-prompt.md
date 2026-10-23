@@ -30,6 +30,8 @@ Clarifications the user gave:
 
 {{TRANSCRIPT_SO_FAR_OR_"(This is the opening round. Nobody has spoken.)"}}
 
+(Condense it. For each earlier turn give the speaker, stance, pull quote and a one-sentence gist of the argument; give the Chair's round summaries in full. The agent needs to know what was claimed and by whom, not every word. The round-two reply target's turn may be included in full so the attack is precise.)
+
 ## Research findings available to you
 
 {{RESEARCH_FINDINGS_OR_"(none yet)"}}
@@ -49,7 +51,7 @@ Return only a JSON object, no prose before or after:
   "reply_to": {{REPLY_TO_OR_null}},
   "text": "60 to 150 words in character",
   "pull_quote": "the single most quotable sentence from text, under 90 characters",
-  "open_questions": ["facts you would want researched before round two, round one only, up to 3"],
+  "open_questions": ["facts you would want researched before round two, round one only, up to 3; omit this key entirely when research is off"],
   "scorecard": {{SCORECARD_SLOT_ROUND_3_ONLY_OR_null}}
 }
 ```

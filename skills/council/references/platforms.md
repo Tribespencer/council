@@ -9,7 +9,7 @@ Signals: you have an `Agent` (or `Task`) tool, `Bash`, `WebSearch`, and often `A
 - **Panelists are subagents.** For each round, launch one `Agent` per panelist in the same message so they run in parallel. Use `subagent_type: "general-purpose"` and give each the prompt from `references/persona-agent-prompt.md`. Each agent returns one JSON turn object. This is what makes the terminal worth filming: five agents spin up, think, and come back with different answers.
 - **Research** runs as its own subagent between rounds one and two, with `WebSearch` and `WebFetch`, returning the `research` array.
 - **Clarifying questions** go through `AskUserQuestion` when available, otherwise ask in chat and wait.
-- **Files** go to `./council-output/<YYYY-MM-DD>-<slug>/`. Run `python3 <skill>/scripts/build.py session.json --outdir <that dir>` with `Bash`. If `reportlab` is missing, the script says so and still writes a print-ready `report.html`; offer `pip install reportlab` once, do not loop on it.
+- **Files** go to `./council-output/<YYYY-MM-DD>-<slug>/` unless the user named a folder. Run `python3 <skill>/scripts/build.py session.json --outdir <that dir>` with `Bash`. If `reportlab` is missing, the script says so and still writes a print-ready `report.html`; offer `pip install reportlab` once, do not loop on it.
 - **Present** the PDF and replay with `SendUserFile` if available, otherwise print the paths as clickable links.
 - Set `meta.mode` to `multi-agent` and `meta.platform` to `claude-code`.
 

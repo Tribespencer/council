@@ -71,7 +71,7 @@ def validate(s):
             words = len((t.get("text") or "").split())
             if words < 30:
                 warns.append(f"round {n}: {t.get('speaker')} turn is short ({words} words)")
-            if words > 190:
+            if words > 170:
                 warns.append(f"round {n}: {t.get('speaker')} turn is long ({words} words)")
         if r.get("red_team") and r["red_team"] not in ids:
             errs.append(f"round {n}: red_team '{r['red_team']}' is not in cast")

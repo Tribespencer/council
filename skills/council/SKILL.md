@@ -25,7 +25,7 @@ The point is not that the personas are right. The point is that five sharp, oppo
 ## The run, start to finish
 
 ### 0. Detect the surface and set up
-Read `references/platforms.md`. Decide: subagents or single context, how to ask questions, where files go. Create the output folder now. Note the mode in your head; it goes into `meta.mode` later.
+Read `references/platforms.md`. Decide: subagents or single context, how to ask questions, where files go. Create the output folder now; if the user named a folder, that one wins over the platform default. Note the mode in your head; it goes into `meta.mode` later.
 
 Parse flags if the user used them: `--with "Name"` adds a wildcard panelist, `--no-research` skips research, `--rounds N` is ignored unless N is 3 (three rounds is the format; say so if asked). Natural language works the same: "add Mark Cuban," "skip the research."
 
@@ -33,7 +33,7 @@ Parse flags if the user used them: `--with "Name"` adds a wildcard panelist, `--
 Take the user's words verbatim into `intake.one_liner`. If they pasted a document or a URL, read it and fold the relevant facts into the brief; the one-liner stays their own sentence.
 
 ### 2. Clarify, briefly
-As the Chair, ask up to three clarifying questions, only those whose answers would change the panel's advice (see `personas/chair.md` for what counts). Ask them all at once. If the user already gave enough, ask none and say you are convening the council. Then write the brief: three to six sentences covering the business, the decision, the constraints, the numbers given, and which way the user is leaning. Show the brief to the user in one short block before round one so they can correct it, but do not wait more than one turn for corrections.
+As the Chair, ask up to three clarifying questions, only those whose answers would change the panel's advice (see `personas/chair.md` for what counts). Ask them all at once. If the user already gave enough, ask none and say you are convening the council. If you cannot ask (a non-interactive run, or the user said "just assume"), record what you assumed as clarifications with the answer prefixed "(assumed)" so the report is honest about it. Then write the brief: three to six sentences covering the business, the decision, the constraints, the numbers given, and which way the user is leaning. Show the brief to the user in one short block before round one so they can correct it, but do not wait more than one turn for corrections.
 
 ### 3. Seat the cast
 The fixed five plus the Chair are in `cast` in the order given in `references/session-schema.md`. If a wildcard was requested, build the persona from `personas/wildcard-template.md` now and add it as the seventh entry with `id: "wildcard"`.
@@ -67,16 +67,16 @@ After every round, print the live board. This is the part people screenshot, so 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-Stance markers: 🟢 for, 🔴 against, 🟡 conditional.
+Stance markers: 🟢 for, 🔴 against, 🟡 conditional. If emoji are unwelcome where you are, use `[FOR]`, `[AGAINST]`, `[COND]` and `[RED TEAM]` instead; the shape of the board matters more than the glyphs.
 
 ### 5. Research pass
-Unless research is off, follow `references/research.md`. Merge the panelists' open questions, answer the five to eight that matter most using the web tools you have, and record each finding with a source and URL in `research`. Tell the user in one line what was looked up ("Research desk: checked 6 questions, found sources for 5"). Never invent a number or a URL; an honest "no credible source found" is a valid entry.
+Unless research is off, follow `references/research.md`. Merge the panelists' open questions, answer the five to eight that matter most using the web tools you have, and record each finding with a source and URL in `research`. Tell the user in one line what was looked up ("Research desk: checked 6 questions, found sources for 5"). Never invent a number or a URL; an honest "no credible source found" is a valid entry. If research is off, drop the `open_questions` slot from the round-one prompt, leave `research` empty, set `meta.research` to false, and have the Chair say in the round-two intro that the panel is arguing from principle.
 
 ### 6. Round two, cross-examination
 The Chair names a Red Team: the panelist most opposed to where the user is leaning after round one, or the most articulate dissenter if the panel was unanimous (a unanimous council after one round is a smell, and the Chair should say so). Every panelist must reply to a specific other panelist by id, name the claim they reject, and use research where it helps. The Red Team argues to kill the idea as hard as their persona allows. Print the board, including the Red Team marker (🎯) next to that panelist and `↩ Name` showing who each turn answered.
 
 ### 7. Round three, convergence and vote
-Read `references/scorecard.md`. Each panelist gives a final position, says what moved them, names the condition that would flip their vote, scores the five dimensions 1 to 10, votes `GO`, `NO-GO`, or `GO-IF` with concrete conditions, and gives a one-line verdict. The Chair then applies the decision rule exactly, writes the decision (headline, two short paragraphs, conditions, three to five actions with timeframes, two to four kill criteria), and records the strongest dissent in the dissenter's own voice.
+Read `references/scorecard.md`. Each panelist gives a final position, says what moved them, names the condition that would flip their vote, scores the five dimensions 1 to 10, votes `GO`, `NO-GO`, or `GO-IF` with concrete conditions, and gives a one-line verdict. The Chair then applies the decision rule exactly, writes the decision (headline, two short paragraphs, conditions, three to five actions with timeframes, two to four kill criteria), and records the strongest dissent in the dissenter's own voice. When several panelists set the same condition with different thresholds, the Chair merges them into one condition, picks a threshold, and notes the range and who raised it.
 
 Print the final board as a scorecard:
 
@@ -111,7 +111,8 @@ Hand the user the PDF and the replay (use a file-presenting tool if you have one
 - **Personas, not people.** These are caricatures built from public work. Never present a line as a real quote, never invent private facts about the real person, and keep the disclaimer from `assets/attribution.json` in the outputs (the build script does this). If a user asks for the panel to be "really them," say what the personas are and carry on.
 - **The user's business, not business in general.** Every turn should use the user's numbers, constraints, or situation. A turn that could be pasted into any other debate is a weak turn; rewrite it.
 - **Disagreement is the product.** If round one comes back unanimous, the Chair says so and the Red Team gets license to be unfair. Agreement that survives a real attack is worth something; agreement that was never attacked is not.
-- **Word limits are real.** 60 to 150 words per turn. Long turns make the replay unwatchable and the PDF unread.
+- **Word limits are real.** Aim for 60 to 150 words per turn; the build script warns past 170. Long turns make the replay unwatchable and the PDF unread.
+- **Keep prompts lean when you use subagents.** Every panelist agent needs its full persona file, the brief, and the round instructions. It does not need every earlier turn verbatim: for rounds two and three, pass earlier rounds as each turn's pull quote plus a one-sentence gist, and the Chair's summaries in full. That keeps a run to a fraction of the tokens with no loss in the debate.
 - **Numbers need sources.** A statistic appears in a turn only if it is in `research` or is general knowledge the persona would plausibly know. Otherwise argue from principle.
 - **The decision rule is not negotiable.** The Chair applies it; the build script checks it. If they disagree, the script wins.
 - **Keep it moving.** The whole run should feel like a fast, sharp meeting. Do not ask for permission between rounds. The only pauses are the clarifying questions and the brief check.

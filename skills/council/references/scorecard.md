@@ -25,7 +25,7 @@ Each panelist casts exactly one vote: `GO`, `NO-GO`, or `GO-IF`. A `GO-IF` vote 
 1. **Ruin veto.** If the council's average `survivability` is below 4.0, the verdict cannot be `GO`. The best it can be is `GO-IF`, and the conditions must address the survivability concern.
 2. **GO** when at least three of five panelists vote `GO` and `council_composite` is 6.5 or higher.
 3. **NO-GO** when at least three panelists vote `NO-GO`.
-4. **GO-IF** when `GO` plus `GO-IF` votes form a majority but rule 2 did not fire, or when rule 1 downgraded a `GO`. The conditions are the union of the panelists' conditions, deduplicated and ordered by how many panelists raised them.
+4. **GO-IF** when `GO` plus `GO-IF` votes form a majority but rule 2 did not fire, or when rule 1 downgraded a `GO`. The conditions are the union of the panelists' conditions, deduplicated and ordered by how many panelists raised them. Near-duplicates with different thresholds (one says "300 paying readers," another "500") become one condition: the Chair picks the threshold, states the range, and names who raised it.
 5. **SPLIT** when none of the above produces a majority. Do not manufacture a consensus. Record both camps fairly and propose the smallest reversible experiment that would settle the disagreement.
 
 With a sixth wildcard panelist, replace "three of five" with "a strict majority."

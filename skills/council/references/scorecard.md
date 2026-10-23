@@ -20,13 +20,15 @@ Each panelist scores all five dimensions from 1 to 10. Higher is always better f
 
 Each panelist casts exactly one vote: `GO`, `NO-GO`, or `GO-IF`. A `GO-IF` vote must come with one to three concrete conditions. "Do more research" is not a condition; "run it with the 20 newest customers for 30 days before touching the base" is.
 
-## Decision rule (the Chair applies this; `scripts/build.py` checks it)
+## Decision rule (the Chair applies this; `scripts/build.py` checks it, in this order)
 
-1. **Ruin veto.** If the council's average `survivability` is below 4.0, the verdict cannot be `GO`. The best it can be is `GO-IF`, and the conditions must address the survivability concern.
-2. **GO** when at least three of five panelists vote `GO` and `council_composite` is 6.5 or higher.
-3. **NO-GO** when at least three panelists vote `NO-GO`.
-4. **GO-IF** when `GO` plus `GO-IF` votes form a majority but rule 2 did not fire, or when rule 1 downgraded a `GO`. The conditions are the union of the panelists' conditions, deduplicated and ordered by how many panelists raised them. Near-duplicates with different thresholds (one says "300 paying readers," another "500") become one condition: the Chair picks the threshold, states the range, and names who raised it.
-5. **SPLIT** when none of the above produces a majority. Do not manufacture a consensus. Record both camps fairly and propose the smallest reversible experiment that would settle the disagreement.
+1. **NO-GO** when at least three of five panelists vote `NO-GO`.
+2. **GO** when at least three of five vote `GO` and `council_composite` is 6.5 or higher.
+3. **GO-IF** when `GO` plus `GO-IF` votes form a majority but rule 2 did not fire. The conditions are the union of the panelists' conditions, deduplicated and ordered by how many panelists raised them. Near-duplicates with different thresholds (one says "300 paying readers," another "500") become one condition: the Chair picks the threshold, states the range, and names who raised it.
+4. **SPLIT** when none of the above produces a majority. Do not manufacture a consensus. Record both camps fairly and propose the smallest reversible experiment that would settle the disagreement.
+5. **Ruin veto**, applied last. If the council's average `survivability` is below 4.0, a `GO` becomes `GO-IF`, and the conditions must address the survivability concern.
+
+On a `GO` verdict, the conditions of any `GO-IF` voters do not become gates. Fold them into `actions` as recommended steps, and say in the summary whose conditions they were.
 
 With a sixth wildcard panelist, replace "three of five" with "a strict majority."
 
@@ -35,7 +37,7 @@ With a sixth wildcard panelist, replace "three of five" with "a strict majority.
 `confidence` is a number from 0 to 100 that tells the user how much the panel actually agreed, computed as:
 
 ```
-vote_share   = votes for the verdict family / total votes      (GO-IF counts for GO-IF and SPLIT; GO counts for GO)
+vote_share   = votes for the verdict / total votes             (GO: GO votes; NO-GO: NO-GO votes; GO-IF: GO plus GO-IF votes; SPLIT: the largest camp)
 spread       = standard deviation of panelist composites        (0 to about 3 in practice)
 confidence   = round(100 * vote_share * max(0, 1 - spread / 5))
 ```

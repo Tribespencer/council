@@ -18,6 +18,7 @@ Take the `open_questions` each panelist returned in round one. Merge duplicates.
 - Note the publication date. A 2021 benchmark may not describe 2026.
 - Two to three searches per question is enough. If nothing credible turns up, say so in the `research` array with `"source": "no credible source found"` so the panel knows it is arguing from principle on that point.
 - Never fabricate a statistic or a URL. A council that cites a made-up number is worse than one that admits it does not know.
+- Prefer a URL a reader can open without a form. A gated download or a "thank you" landing page is a weak citation; find the article that quotes the number, or say the figure comes from a gated report.
 
 ## How findings are used
 

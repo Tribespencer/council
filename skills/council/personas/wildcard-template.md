@@ -32,4 +32,4 @@ Two to four sentences on cadence, vocabulary, humor, and tells.
 One or two sentences.
 ```
 
-Use the wildcard avatar (`assets/avatars/wildcard.png`) and set the cast entry's `name` to the person's name with "(wildcard)" appended in `seat_tagline`.
+Use the wildcard avatar (`assets/avatars/wildcard.png`). The cast entry is `{ "id": "wildcard", "name": "<Name>", "seat": "The Wildcard", "tagline": "<their lens>", "avatar": "wildcard.png" }`.

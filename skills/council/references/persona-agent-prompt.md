@@ -48,10 +48,10 @@ Return only a JSON object, no prose before or after:
 {
   "speaker": "{{PERSONA_ID}}",
   "stance": "for | against | conditional",
-  "reply_to": {{REPLY_TO_OR_null}},
+  "reply_to": null,                 // round two and three: set this yourself to the id of the panelist you are answering
   "text": "60 to 150 words in character",
   "pull_quote": "the single most quotable sentence from text, under 90 characters",
-  "open_questions": ["facts you would want researched before round two, round one only, up to 3; omit this key entirely when research is off"],
+  "open_questions": ["round one only, up to 3 facts you want researched; omit this key in later rounds or when research is off"],
   "scorecard": {{SCORECARD_SLOT_ROUND_3_ONLY_OR_null}}
 }
 ```

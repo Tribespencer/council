@@ -196,10 +196,17 @@ body.reel .hint{display:none}
   function scroll(){ stream.scrollTo({top:stream.scrollHeight,behavior:'smooth'}); }
 
   function wordsHTML(text){ return text.split(/(\s+)/).map(w=>/\s+/.test(w)?w:`<span class="w">${esc(w)}</span>`).join(''); }
+  let revealTimers=[];
   function revealWords(el, ms){
-    const ws=[...el.querySelectorAll('.w')]; const per=Math.max(18, ms/Math.max(1,ws.length));
-    ws.forEach((w,k)=>setTimeout(()=>{w.classList.add('on'); if(k%12===0) scroll();}, k*per));
+    const ws=[...el.querySelectorAll('.w')]; const per=Math.max(12, ms/Math.max(1,ws.length));
+    ws.forEach((w,k)=>revealTimers.push(setTimeout(()=>{w.classList.add('on'); if(k%12===0) scroll();}, k*per)));
     return ws.length*per;
+  }
+  function finishReveals(){
+    revealTimers.forEach(clearTimeout); revealTimers=[];
+    document.querySelectorAll('.w').forEach(w=>w.classList.add('on'));
+    document.querySelectorAll('.pq').forEach(q=>q.classList.add('on'));
+    document.querySelectorAll('.vote[data-pending]').forEach(v=>{v.textContent=v.dataset.pending; v.classList.add('show'); delete v.dataset.pending;});
   }
 
   function render(step){
@@ -209,19 +216,19 @@ body.reel .hint{display:none}
       col.appendChild(d); setActive(null);
       document.querySelectorAll('.seat').forEach(s=>s.classList.remove('redteam'));
       if(step.red){ const s=document.getElementById('seat-'+step.red); if(s) s.classList.add('redteam'); }
-      scroll(); return 1800;
+      scroll(); return 1800/speed;
     }
     if(step.type==='research'){
       const d=document.createElement('div'); d.className='research';
       d.innerHTML=`<b>Research desk</b> · ${step.items.length} findings pulled in between rounds<ul>${step.items.slice(0,4).map(x=>`<li>${esc(x.claim)}</li>`).join('')}${step.items.length>4?`<li>… and ${step.items.length-4} more in the report</li>`:''}</ul>`;
-      col.appendChild(d); scroll(); return 2600;
+      col.appendChild(d); scroll(); return 2600/speed;
     }
     if(step.type==='chair'){
       const c=cast.chair||{name:'The Chair'};
       const d=document.createElement('div'); d.className='msg chair';
       d.innerHTML=`<div class="av"><img src="${av('chair')}" alt=""></div><div class="bub"><div class="hd"><span class="nm">${esc(c.name)}</span><span class="st">round summary</span></div><div class="tx">${wordsHTML(step.text)}</div></div>`;
       col.appendChild(d); setActive('chair'); scroll();
-      const n=step.text.split(/\s+/).length; return revealWords(d.querySelector('.tx'), n*170)+900;
+      const n=step.text.split(/\s+/).length; return revealWords(d.querySelector('.tx'), n*170/speed)+900/speed;
     }
     if(step.type==='turn'){
       const t=step.t, c=cast[t.speaker]||{name:t.speaker,seat:''};
@@ -231,14 +238,16 @@ body.reel .hint{display:none}
       const sourced = t.cites && t.cites.length ? `<span class="pill src">sourced</span>`:'';
       d.innerHTML=`<div class="av"><img src="${av(t.speaker)}" alt=""></div><div class="bub"><div class="hd"><span class="nm">${esc(c.name)}</span><span class="st">${esc(c.seat)}</span><span class="pill ${stanceOf(t.stance)}">${esc(t.stance)}</span>${reply}${isRed?'<span class="pill red">🎯 red team</span>':''}${sourced}</div><div class="tx">${wordsHTML(t.text)}</div>${t.pull_quote?`<div class="pq">“${esc(t.pull_quote)}”</div>`:''}</div>`;
       col.appendChild(d); setActive(t.speaker, t.stance); scroll();
-      const n=t.text.split(/\s+/).length; const ms=revealWords(d.querySelector('.tx'), n*150);
-      setTimeout(()=>{const pq=d.querySelector('.pq'); if(pq) pq.classList.add('on'); scroll();}, ms);
+      const n=t.text.split(/\s+/).length; const ms=revealWords(d.querySelector('.tx'), n*150/speed);
+      revealTimers.push(setTimeout(()=>{const pq=d.querySelector('.pq'); if(pq) pq.classList.add('on'); scroll();}, ms));
       if(step.round===3 && S.scorecard && S.scorecard.scores && S.scorecard.scores[t.speaker]){
-        setTimeout(()=>{const v=document.getElementById('vote-'+t.speaker); if(v){v.textContent=S.scorecard.scores[t.speaker].vote; v.classList.add('show');}}, ms);
+        const v=document.getElementById('vote-'+t.speaker);
+        if(v){ v.dataset.pending=S.scorecard.scores[t.speaker].vote;
+          revealTimers.push(setTimeout(()=>{v.textContent=S.scorecard.scores[t.speaker].vote; v.classList.add('show'); delete v.dataset.pending;}, ms)); }
       }
-      return ms+1400;
+      return ms+1400/speed;
     }
-    if(step.type==='verdict'){ showVerdict(); return 0; }
+    if(step.type==='verdict'){ finishReveals(); showVerdict(); return 0; }
   }
 
   function showVerdict(){
@@ -272,15 +281,15 @@ body.reel .hint{display:none}
   function step(){
     if(i>=steps.length) return;
     const ms=render(steps[i++]);
-    if(playing && i<steps.length){ timer=setTimeout(step, ms/speed); }
+    if(playing && i<steps.length){ timer=setTimeout(step, ms); }
   }
   function play(){ if(i>=steps.length) return; playing=true; $('#play').textContent='❚❚ Pause'; step(); }
   function pause(){ playing=false; clearTimeout(timer); $('#play').textContent='▶ Play'; }
-  function next(){ pause(); step(); }
-  function restart(){ pause(); i=0; col.innerHTML=''; $('#verdict').classList.remove('show'); setActive(null);
+  function next(){ pause(); finishReveals(); step(); }
+  function restart(){ pause(); finishReveals(); i=0; col.innerHTML=''; $('#verdict').classList.remove('show'); setActive(null);
     document.querySelectorAll('.vote').forEach(v=>{v.classList.remove('show');v.textContent='';});
     document.querySelectorAll('.seat').forEach(s=>s.classList.remove('for','against','conditional','redteam')); }
-  function toVerdict(){ pause(); while(i<steps.length-1){ const s=steps[i++]; if(s.type!=='verdict'){ const d=document.createElement('div'); d.style.display='none'; } } showVerdict(); i=steps.length; }
+  function toVerdict(){ pause(); finishReveals(); showVerdict(); i=steps.length; }
   function toggleReel(){ document.body.classList.toggle('reel'); }
 
   $('#play').onclick=()=>playing?pause():play();

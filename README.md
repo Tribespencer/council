@@ -35,19 +35,19 @@ Every founder has the same problem: the people who could stress-test a decision 
 **Claude Code**, the simplest way (the skill runs as `/council`):
 
 ```bash
-git clone https://github.com/YOUR_HANDLE/council.git && mkdir -p ~/.claude/skills && cp -R council/skills/council ~/.claude/skills/council
+git clone https://github.com/Tribespencer/council.git && mkdir -p ~/.claude/skills && cp -R council/skills/council ~/.claude/skills/council
 ```
 
 Or as a plugin (runs as `/council:council`):
 
 ```bash
-claude plugin marketplace add YOUR_HANDLE/council
+claude plugin marketplace add Tribespencer/council
 ```
 ```bash
 claude plugin install council@council
 ```
 
-**Claude.ai, Claude Desktop, Cowork:** download `council.skill` from the [latest release](https://github.com/YOUR_HANDLE/council/releases/latest) and upload it under Settings → Capabilities → Skills. To build it yourself, run `scripts/package.sh`.
+**Claude.ai, Claude Desktop, Cowork:** download `council.skill` from the [latest release](https://github.com/Tribespencer/council/releases/latest) and upload it under Settings → Capabilities → Skills. To build it yourself, run `scripts/package.sh`.
 
 The PDF needs `reportlab` (`pip install reportlab`). Without it you still get a print-ready `report.html` and the replay.
 
@@ -108,8 +108,8 @@ The personas are caricatures built from each person's public work. They are not 
 
 ## Share it
 
-If Council changed a decision for you, post the replay or the cover page and tag **@YOUR_HANDLE**. Every PDF and replay carries a link back here so the next founder can find it.
+If Council changed a decision for you, post the replay or the cover page and tag **@Spencer.Ai.Tribe** on Instagram. Every PDF and replay carries the handle so the next founder can find it.
 
 ---
 
-Built by **Spencer Tribe** · [@YOUR_HANDLE](https://x.com/YOUR_HANDLE) · MIT
+Built by **Spencer Tribe** · [@Spencer.Ai.Tribe](https://instagram.com/spencer.ai.tribe) · MIT

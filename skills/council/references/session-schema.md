@@ -17,8 +17,8 @@ All text fields are plain text. No Markdown inside strings except in `decision.s
     "attribution": {                       // copied from assets/attribution.json
       "product": "Council",
       "name": "Spencer Tribe",
-      "handle": "@YOUR_HANDLE",
-      "url": "https://github.com/YOUR_HANDLE/council"
+      "handle": "@Spencer.Ai.Tribe",
+      "url": "instagram.com/spencer.ai.tribe"
     }
   },
   "intake": {

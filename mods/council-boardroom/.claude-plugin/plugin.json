@@ -1,0 +1,11 @@
+{
+  "name": "council-boardroom",
+  "version": "0.1.0",
+  "description": "A live boardroom pane for the Council skill: seats, stances, the round in progress, and the verdict, redrawn as the debate runs.",
+  "types": "./types/index.d.ts",
+  "license": "MIT",
+  "author": {
+    "name": "Spencer Tribe"
+  },
+  "homepage": "https://github.com/Tribespencer/council"
+}

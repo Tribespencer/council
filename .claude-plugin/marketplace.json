@@ -1,12 +1,19 @@
 {
   "name": "council",
   "description": "Council: five legendary business minds debate your decision.",
-  "owner": { "name": "Spencer Tribe" },
+  "owner": {
+    "name": "Spencer Tribe"
+  },
   "plugins": [
     {
       "name": "council",
       "source": ".",
       "description": "Five legendary business minds debate your decision over three rounds, with research, a scorecard, a verdict, a PDF and an animated replay."
+    },
+    {
+      "name": "council-boardroom",
+      "source": "./mods/council-boardroom",
+      "description": "A live boardroom pane for the Council skill: seats, stances, the round in progress, and the verdict, redrawn as the debate runs."
     }
   ]
 }

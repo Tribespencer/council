@@ -54,6 +54,8 @@ Each panelist gives an opening position through their seat's lens, 60 to 150 wor
 
 The Chair closes the round with two to four sentences: where they agree, where they split, what is unresolved.
 
+After every round, write `session.json` to the output folder with everything so far (a partial file is fine; the build script only runs at the end). This is cheap insurance against a crash late in the run, and it is what the Council Boardroom mod watches: if a tool named `mcp__council-boardroom__update` exists, call it with the absolute path after each write so the pane beside the chat redraws.
+
 After every round, print the live board. This is the part people screenshot, so keep it tight:
 
 ```

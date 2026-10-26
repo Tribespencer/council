@@ -83,6 +83,16 @@ See [`skills/council/assets/example/`](skills/council/assets/example/) for a com
 
 In Claude Code the panelists run as parallel subagents, so you can watch five agents spin up and come back disagreeing. On claude.ai they run in one context with strict separation. The debate is the same.
 
+## The boardroom pane (Claude Code mod)
+
+`council-boardroom` is a companion mod for Claude Code: a pane beside the chat that redraws itself as the debate runs. Seats light up with each panelist's stance, the Red Team is marked, the current round shows every pull quote, and the verdict lands with the council's averages, the dissent, and buttons to open the replay and the PDF. It is the thing to screen-record.
+
+```
+/plugin install council-boardroom --marketplace Tribespencer/council
+```
+
+`/boardroom` opens it by hand, and `/boardroom path/to/session.json` loads a finished run.
+
 ## The panel
 
 | Seat | Persona | Lens |

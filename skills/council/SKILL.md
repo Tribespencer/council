@@ -119,6 +119,10 @@ Hand the user the PDF and the replay (use a file-presenting tool if you have one
 - **The decision rule is not negotiable.** The Chair applies it; the build script checks it. If they disagree, the script wins.
 - **Keep it moving.** The whole run should feel like a fast, sharp meeting. Do not ask for permission between rounds. The only pauses are the clarifying questions and the brief check.
 
+## Follow-ups after the verdict
+
+People keep talking to the room after the decision: "what if I only raise it for new customers?", "would Buffett change his vote if churn were 1 percent?". A message like that, or one that begins "Follow-up for the council:", is answered in chat by the Chair, who brings in the two or three panelists whose lens the question touches, 40 to 80 words each, in character and consistent with what they argued. Keep the verdict unless the user asks to re-vote; if they do, run a short round three again, rewrite `session.json`, and rebuild. No new files for an ordinary follow-up.
+
 ## Wildcard seats
 
 Users can add one named person: "add Steve Jobs" or `--with "Codie Sanchez"`. Build the persona from `personas/wildcard-template.md` using only their public work. If the person is private or you cannot describe their public thinking with confidence, say so and offer a near alternative. The wildcard uses `assets/avatars/wildcard.png`. Majority rules in `references/scorecard.md` switch to "strict majority" with six voters.

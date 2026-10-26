@@ -77,7 +77,7 @@ test('before any run the pane explains itself', async ($, on) => {
   await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({ ...PANE, surface })
-    expect(await ui.find({ type: 'Text', text: /No debate yet/ })).toBeDefined()
+    expect(await ui.find({ type: 'Input', key: 'ask' })).toBeDefined()
     await ui.unmount()
   }
 })

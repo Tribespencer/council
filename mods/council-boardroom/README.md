@@ -6,6 +6,10 @@ A live pane for the [Council](https://github.com/Tribespencer/council) skill. Wh
 
 The Council skill writes `session.json` after each round. This mod watches for that file (any Write, Edit, or Bash command that touches a `session.json`) and parses it leniently, so a partial file mid-debate draws fine. The skill can also call the `update` tool the mod registers, passing the path, to force a redraw.
 
+## Talk to the council
+
+A button, **Ask the council**, sits in the band above the prompt box (hotkey `c` once the band has focus). Press it and the boardroom pane opens with a text field: type the decision and press Enter, and the mod runs `/council` for you. While the debate runs, and after the verdict, a second field at the bottom of the pane takes follow-ups ("what if I only raise it for new customers?"), which the Chair answers in chat with the relevant panelists.
+
 ## Commands
 
 - `/boardroom` opens the pane.

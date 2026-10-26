@@ -47,6 +47,8 @@ export type BoardState = {
   /** Built outputs next to the session.json, when they exist. */
   replayPath: string | null
   reportPath: string | null
+  /** The pane shows the "ask the council" composer. */
+  composing: boolean
   updatedAt: number
 }
 

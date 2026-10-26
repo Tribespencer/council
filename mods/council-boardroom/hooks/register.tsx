@@ -4,6 +4,7 @@ import type { Register } from 'claude-code'
 import type { BoardSession, BoardState, Stance } from '../types'
 
 const PANE = 'council-boardroom'
+const TITLE = 'Council · Boardroom'
 const TOOL = 'update'
 const TOOL_FULL = 'mcp__council-boardroom__update'
 
@@ -13,6 +14,7 @@ const EMPTY: BoardState = {
   session: null,
   replayPath: null,
   reportPath: null,
+  composing: false,
   updatedAt: 0,
 }
 const board = atom({ plugin: 'council-boardroom', key: 'board' } as const, EMPTY)
@@ -144,12 +146,13 @@ async function loadSession($: any, path: string, text?: string): Promise<BoardSe
     ...(b ?? EMPTY),
     sourcePath: path,
     pending: null,
+    composing: false,
     session,
     replayPath: hasReplay ? replay : null,
     reportPath: hasReport ? report : null,
     updatedAt: Date.now(),
   }))
-  void $.ui.open({ id: PANE, title: 'Council · Boardroom' })
+  void $.ui.open({ id: PANE, title: TITLE })
   return session
 }
 
@@ -160,6 +163,36 @@ function phaseOf(s: BoardSession | null, pending: string | null): string {
   if (lastRound) return `round ${lastRound.number}`
   if (s.brief) return 'brief'
   return 'convening'
+}
+
+/** Open the pane with the composer showing, focused so typing starts at once. */
+async function openComposer($: any): Promise<void> {
+  await update($, board, b => ({ ...(b ?? EMPTY), composing: true }))
+  await $.ui.open({ id: PANE, title: TITLE, focus: true })
+}
+
+/** Hand the question to the Council skill as the person's own prompt. */
+async function convene($: any, question: string): Promise<void> {
+  const q = question.trim()
+  if (!q) return
+  await update($, board, b => ({
+    ...(b ?? EMPTY),
+    pending: q,
+    composing: false,
+    session: null,
+    sourcePath: null,
+    replayPath: null,
+    reportPath: null,
+    updatedAt: Date.now(),
+  }))
+  // A slash command is run as one, never submitted as prompt text.
+  void $.command.run({ command: 'council', args: q })
+}
+
+async function followUp($: any, question: string): Promise<void> {
+  const q = question.trim()
+  if (!q) return
+  void $.prompt.submit({ text: `Follow-up for the council: ${q}`, asUser: true })
 }
 
 const SESSION_IN_TEXT = /(\/[^\s"'`]+\/session\.json)/
@@ -230,8 +263,17 @@ export const register: Register = on => {
     const isCouncil = e.command?.name === 'council' || /^\/council\b/.test(text)
     if (isCouncil) {
       const question = text.replace(/^\/council\s*/, '').trim()
-      await update($, board, b => ({ ...(b ?? EMPTY), pending: question || '(question to follow)', session: null, sourcePath: null, replayPath: null, reportPath: null, updatedAt: Date.now() }))
-      void $.ui.open({ id: PANE, title: 'Council · Boardroom' })
+      await update($, board, b => ({
+        ...(b ?? EMPTY),
+        pending: question || '(question to follow)',
+        composing: false,
+        session: null,
+        sourcePath: null,
+        replayPath: null,
+        reportPath: null,
+        updatedAt: Date.now(),
+      }))
+      void $.ui.open({ id: PANE, title: TITLE })
     }
     return next(e)
   })
@@ -243,12 +285,43 @@ export const register: Register = on => {
       if (!s) return { text: `Could not read a Council session at ${path}.` }
       return { text: `Boardroom loaded: ${s.title} (${phaseOf(s, null)}).` }
     }
-    await $.ui.open({ id: PANE, title: 'Council · Boardroom' })
-    return { text: 'Boardroom pane opened. It redraws itself while /council runs, or load a run with /boardroom <path/to/session.json>.' }
+    await openComposer($)
+    return { text: 'Boardroom opened. Type a decision in the pane, or load a run with /boardroom <path/to/session.json>.' }
+  })
+
+  // The band above the prompt: one button that opens the room.
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    if (e.props.hasSurvey) return next(e)
+    const { Box, Button, Text } = $.ui.resolve(e)
+    const b = (await read($, board)) ?? EMPTY
+    const phase = phaseOf(b.session, b.pending)
+    const status =
+      phase === 'idle'
+        ? 'Five business minds. Three rounds. One decision.'
+        : phase === 'convening'
+          ? 'The council is convening…'
+          : phase === 'verdict'
+            ? `Verdict: ${b.session?.decision?.verdict ?? ''} · ${b.session?.decision?.headline ?? ''}`
+            : `Council · ${phase} in progress`
+    return (
+      <Box flexDirection="row" gap={1}>
+        <Button key="ask" hotkey="c" variant="primary" onPress={() => { void openComposer($) }}>
+          Ask the council
+        </Button>
+        {b.session ? (
+          <Button key="open-room" onPress={() => { void $.ui.open({ id: PANE, title: TITLE }) }}>
+            Boardroom
+          </Button>
+        ) : null}
+        <Text dimColor>{status}</Text>
+      </Box>
+    )
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
-    const { Box, Text, Button } = $.ui.resolve(e)
+    const table = $.ui.resolve(e)
+    const { Box, Text, Button } = table
+    const Input = 'Input' in table ? table.Input : null
     const b = (await read($, board)) ?? EMPTY
     const s = b.session
     const cols = Math.max(32, e.props.bodyColumns ?? 60)
@@ -262,13 +335,29 @@ export const register: Register = on => {
     }
     const rule = '─'.repeat(Math.min(cols, 80))
 
+    const composer = Input ? (
+      <Box flexDirection="column" marginBottom={1}>
+        <Input
+          key="ask"
+          label="What decision should the council debate?"
+          placeholder="e.g. Raise prices 30% on existing customers? $49/mo SaaS, 1,200 customers"
+          submitLabel="Convene"
+          autoFocus
+          onSubmit={value => { void convene($, value) }}
+        />
+        <Text dimColor>Enter convenes the council. Add --with "Name" for a sixth seat, --no-research to skip the web.</Text>
+      </Box>
+    ) : (
+      <Text dimColor>Type /council followed by the decision to convene the council.</Text>
+    )
+
     if (!s) {
       return (
         <Box flexDirection="column" paddingX={1}>
           <Text bold color="warning">C O U N C I L</Text>
           <Text dimColor>Five legendary business minds. Three rounds. One decision.</Text>
           <Text> </Text>
-          {b.pending ? (
+          {b.pending && !b.composing ? (
             <Box flexDirection="column">
               <Text bold>The council is convening.</Text>
               <Text dimColor>{b.pending}</Text>
@@ -276,10 +365,7 @@ export const register: Register = on => {
               <Text dimColor>Seats fill as the Chair writes the brief and round one begins.</Text>
             </Box>
           ) : (
-            <Box flexDirection="column">
-              <Text dimColor>No debate yet. Type /council followed by a decision, or</Text>
-              <Text dimColor>/boardroom path/to/session.json to replay a finished run.</Text>
-            </Box>
+            composer
           )}
         </Box>
       )
@@ -296,6 +382,7 @@ export const register: Register = on => {
 
     return (
       <Box flexDirection="column" paddingX={1}>
+        {b.composing ? composer : null}
         <Box flexDirection="row" justifyContent="space-between">
           <Text bold color="warning">C O U N C I L</Text>
           <Text dimColor>{phase.toUpperCase()}{s.research ? ` · ${s.research} sources` : ''}</Text>
@@ -324,9 +411,7 @@ export const register: Register = on => {
         {/* verdict, once there is one */}
         {s.decision ? (
           <Box flexDirection="column">
-            <Box flexDirection="row" gap={1}>
-              <Text dimColor>THE COUNCIL HAS DECIDED</Text>
-            </Box>
+            <Text dimColor>THE COUNCIL HAS DECIDED</Text>
             <Box flexDirection="row" gap={2} alignItems="flex-end">
               <Text bold color={voteColor(s.decision.verdict)} size="title">{s.decision.verdict}</Text>
               {s.decision.confidence !== null ? <Text dimColor>confidence {s.decision.confidence} / 100</Text> : null}
@@ -409,6 +494,23 @@ export const register: Register = on => {
                 R{r.number} {r.title}: {r.turns.map(t => `${last(t.speaker)} ${stanceWord(t.stance).toLowerCase()}`).join(' · ')}
               </Text>
             ))}
+          </Box>
+        ) : null}
+
+        {/* talk to the room */}
+        {Input && !b.composing ? (
+          <Box flexDirection="column" marginTop={1}>
+            <Text dimColor>{rule}</Text>
+            <Input
+              key="followup"
+              label={s.decision ? 'Ask the council a follow-up' : 'Tell the council something mid-debate'}
+              placeholder="e.g. What if I only raise it for new customers?"
+              submitLabel="Ask"
+              onSubmit={value => { void followUp($, value) }}
+            />
+            <Button key="new-question" plain onPress={() => { void openComposer($) }}>
+              <Text dimColor>+ new decision</Text>
+            </Button>
           </Box>
         ) : null}
         <Text> </Text>

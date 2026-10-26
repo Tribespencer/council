@@ -194,7 +194,7 @@ export const register: Register = on => {
     const s = await loadSession($, path)
     if (!s) return { deny: `could not read or parse ${path}` }
     const text = `Boardroom redrawn from ${path}: ${phaseOf(s, null)}, ${s.rounds.length} round(s), ${s.decision ? 'verdict ' + s.decision.verdict : 'no verdict yet'}.`
-    return { result: { phase: phaseOf(s, null), rounds: s.rounds.length }, text }
+    return { result: text, text }
   })
 
   // Passive refresh: any Write of a session.json redraws the pane.

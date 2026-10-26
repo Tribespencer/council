@@ -1,6 +1,6 @@
 {
   "name": "council-boardroom",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Ask the council from a button above the prompt, then watch the boardroom pane fill: seats, stances, the round in progress, the verdict, and a field for follow-ups.",
   "types": "./types/index.d.ts",
   "license": "MIT",

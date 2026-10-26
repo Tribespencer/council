@@ -2,6 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
 import type { BoardSession, BoardState, Stance } from '../types'
+import { AVATARS } from './avatars'
 
 const PANE = 'council-boardroom'
 const TITLE = 'Council · Boardroom'
@@ -289,30 +290,64 @@ export const register: Register = on => {
     return { text: 'Boardroom opened. Type a decision in the pane, or load a run with /boardroom <path/to/session.json>.' }
   })
 
-  // The band above the prompt: one button that opens the room.
+  // ---------------------------------------------------------------------------
+  // drawing
+  // ---------------------------------------------------------------------------
+
+  const HEX = { for: '#3ddc84', against: '#ff5c6c', conditional: '#f5b942', none: '#3a4670', chair: '#8fb4ff' }
+  const stanceColor = (st: Stance | undefined) => (st === 'for' ? 'success' : st === 'against' ? 'error' : st ? 'warning' : 'inactive')
+  const stanceWord = (st: Stance) => (st === 'for' ? 'FOR' : st === 'against' ? 'AGAINST' : 'CONDITIONAL')
+  const voteColor = (v: string) => (v === 'GO' ? 'success' : v === 'NO-GO' ? 'error' : v === 'SPLIT' ? 'suggestion' : 'warning')
+
+  /** A round avatar as an SVG document: the caricature clipped to a circle with a stance-colored ring. */
+  function avatarSvg(id: string, ring: string): string {
+    const png = AVATARS[id] ?? AVATARS.wildcard ?? ''
+    return (
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72" width="72" height="72">` +
+      `<defs><clipPath id="c"><circle cx="36" cy="36" r="33"/></clipPath></defs>` +
+      `<circle cx="36" cy="36" r="35" fill="#121a30"/>` +
+      `<image href="data:image/png;base64,${png}" x="0" y="0" width="72" height="72" clip-path="url(#c)"/>` +
+      `<circle cx="36" cy="36" r="34" fill="none" stroke="${ring}" stroke-width="3"/>` +
+      `</svg>`
+    )
+  }
+
+  // The band above the prompt: the way in, plus a five-dot summary of the room.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.props.hasSurvey) return next(e)
     const { Box, Button, Text } = $.ui.resolve(e)
     const b = (await read($, board)) ?? EMPTY
-    const phase = phaseOf(b.session, b.pending)
+    const s = b.session
+    const phase = phaseOf(s, b.pending)
+    const latest = new Map<string, Stance>()
+    if (s) for (const r of s.rounds) for (const t of r.turns) latest.set(t.speaker, t.stance)
+    const panel = s ? s.cast.filter(c => c.id !== 'chair') : []
     const status =
       phase === 'idle'
         ? 'Five business minds. Three rounds. One decision.'
         : phase === 'convening'
           ? 'The council is convening…'
           : phase === 'verdict'
-            ? `Verdict: ${b.session?.decision?.verdict ?? ''} · ${b.session?.decision?.headline ?? ''}`
-            : `Council · ${phase} in progress`
+            ? (s?.decision?.headline ?? '')
+            : `${phase} in progress`
     return (
-      <Box flexDirection="row" gap={1}>
+      <Box flexDirection="row" gap={1} alignItems="center">
         <Button key="ask" hotkey="c" variant="primary" onPress={() => { void openComposer($) }}>
-          Ask the council
+          ◆ Ask the council
         </Button>
-        {b.session ? (
+        {s ? (
           <Button key="open-room" onPress={() => { void $.ui.open({ id: PANE, title: TITLE }) }}>
             Boardroom
           </Button>
         ) : null}
+        {panel.length ? (
+          <Text>
+            {panel.map(c => (
+              <Text key={`dot-${c.id}`} color={stanceColor(latest.get(c.id))}>● </Text>
+            ))}
+          </Text>
+        ) : null}
+        {s?.decision ? <Text bold color={voteColor(s.decision.verdict)}>{s.decision.verdict}</Text> : null}
         <Text dimColor>{status}</Text>
       </Box>
     )
@@ -322,51 +357,75 @@ export const register: Register = on => {
     const table = $.ui.resolve(e)
     const { Box, Text, Button } = table
     const Input = 'Input' in table ? table.Input : null
+    const Svg = 'Svg' in table ? table.Svg : null
     const b = (await read($, board)) ?? EMPTY
     const s = b.session
-    const cols = Math.max(32, e.props.bodyColumns ?? 60)
-    const stanceColor = (st: Stance) => (st === 'for' ? 'success' : st === 'against' ? 'error' : 'warning')
-    const stanceWord = (st: Stance) => (st === 'for' ? 'FOR' : st === 'against' ? 'AGAINST' : 'COND')
-    const voteColor = (v: string) => (v === 'GO' ? 'success' : v === 'NO-GO' ? 'error' : v === 'SPLIT' ? 'suggestion' : 'warning')
     const last = (id: string) => {
       const c = s?.cast.find(x => x.id === id)
       if (!c) return id
       return c.id === 'chair' ? 'The Chair' : (c.name.split(' ').slice(-1)[0] ?? c.name)
     }
-    const rule = '─'.repeat(Math.min(cols, 80))
+    const seatOf = (id: string) => s?.cast.find(x => x.id === id)?.seat ?? ''
+
+    const pill = (text: string, color: string, key?: string) => (
+      <Text key={key} backgroundColor={color} color="inverseText" bold size="caption"> {text} </Text>
+    )
+    const avatar = (id: string, st: Stance | undefined, size = 44) =>
+      Svg ? (
+        <Svg source={avatarSvg(id, id === 'chair' ? HEX.chair : st ? HEX[st] : HEX.none)} alt={last(id)} width={size} height={size} />
+      ) : (
+        <Text color={id === 'chair' ? 'suggestion' : stanceColor(st)}>{st || id === 'chair' ? '●' : '○'}</Text>
+      )
 
     const composer = Input ? (
-      <Box flexDirection="column" marginBottom={1}>
+      <Box flexDirection="column" borderStyle="round" borderColor="warning" paddingX={1} marginBottom={1}>
+        <Text bold color="warning">Ask the council</Text>
         <Input
           key="ask"
-          label="What decision should the council debate?"
-          placeholder="e.g. Raise prices 30% on existing customers? $49/mo SaaS, 1,200 customers"
+          label="What decision should they debate?"
+          placeholder="Raise prices 30% on existing customers? $49/mo SaaS, 1,200 customers…"
           submitLabel="Convene"
           autoFocus
           onSubmit={value => { void convene($, value) }}
         />
-        <Text dimColor>Enter convenes the council. Add --with "Name" for a sixth seat, --no-research to skip the web.</Text>
+        <Text dimColor size="caption">Enter convenes the room · --with "Name" adds a sixth seat · --no-research skips the web</Text>
       </Box>
     ) : (
       <Text dimColor>Type /council followed by the decision to convene the council.</Text>
     )
 
+    const header = (
+      <Box flexDirection="column" borderStyle="round" borderColor="warning" paddingX={1}>
+        <Box flexDirection="row" justifyContent="space-between">
+          <Text bold color="warning">C O U N C I L</Text>
+          <Text dimColor size="caption">{phaseOf(s, b.pending).toUpperCase()}{s?.research ? ` · ${s.research} SOURCES` : ''}</Text>
+        </Box>
+        {s ? (
+          <Box flexDirection="column">
+            <Text bold size="heading">{s.title}</Text>
+            {s.question && s.question !== s.title ? <Text dimColor>{s.question}</Text> : null}
+          </Box>
+        ) : (
+          <Text dimColor>Five legendary business minds. Three rounds. One decision.</Text>
+        )}
+      </Box>
+    )
+
     if (!s) {
       return (
-        <Box flexDirection="column" paddingX={1}>
-          <Text bold color="warning">C O U N C I L</Text>
-          <Text dimColor>Five legendary business minds. Three rounds. One decision.</Text>
-          <Text> </Text>
-          {b.pending && !b.composing ? (
-            <Box flexDirection="column">
-              <Text bold>The council is convening.</Text>
-              <Text dimColor>{b.pending}</Text>
-              <Text> </Text>
-              <Text dimColor>Seats fill as the Chair writes the brief and round one begins.</Text>
-            </Box>
-          ) : (
-            composer
-          )}
+        <Box flexDirection="column" paddingX={1} paddingY={1}>
+          {header}
+          <Box marginTop={1} flexDirection="column">
+            {b.pending && !b.composing ? (
+              <Box flexDirection="column" borderStyle="round" borderDimColor paddingX={1}>
+                <Text bold>The council is convening.</Text>
+                <Text dimColor>{b.pending}</Text>
+                <Text dimColor size="caption">Seats fill as the Chair writes the brief and round one begins.</Text>
+              </Box>
+            ) : (
+              composer
+            )}
+          </Box>
         </Box>
       )
     }
@@ -376,145 +435,155 @@ export const register: Register = on => {
     const redTeam = s.rounds.find(r => r.number === 2)?.red_team ?? null
     const latestStance = new Map<string, Stance>()
     for (const r of s.rounds) for (const t of r.turns) latestStance.set(t.speaker, t.stance)
-    const phase = phaseOf(s, b.pending)
-    const nameW = Math.max(8, ...panel.map(c => last(c.id).length))
-    const pad = (t: string, w: number) => (t.length >= w ? t : t + ' '.repeat(w - t.length))
 
-    return (
-      <Box flexDirection="column" paddingX={1}>
-        {b.composing ? composer : null}
-        <Box flexDirection="row" justifyContent="space-between">
-          <Text bold color="warning">C O U N C I L</Text>
-          <Text dimColor>{phase.toUpperCase()}{s.research ? ` · ${s.research} sources` : ''}</Text>
-        </Box>
-        <Text bold>{s.title}</Text>
-        {s.question && s.question !== s.title ? <Text dimColor>{s.question}</Text> : null}
-        <Text dimColor>{rule}</Text>
-
-        {/* seats */}
+    const seats = (
+      <Box flexDirection="row" flexWrap="wrap" columnGap={2} rowGap={1} marginTop={1}>
         {panel.map(c => {
           const st = latestStance.get(c.id)
           const sc = s.scores[c.id]
           return (
-            <Box key={`seat-${c.id}`} flexDirection="row" gap={1}>
-              <Text color={st ? stanceColor(st) : 'inactive'}>{st ? '●' : '○'}</Text>
-              <Text bold>{pad(last(c.id), nameW)}</Text>
-              <Text dimColor>{pad(c.seat, 16)}</Text>
-              <Text color={st ? stanceColor(st) : 'inactive'}>{pad(st ? stanceWord(st) : 'waiting', 8)}</Text>
-              {redTeam === c.id ? <Text color="error">RED TEAM</Text> : null}
-              {sc ? <Text bold color={voteColor(sc.vote)}>{sc.vote}</Text> : null}
+            <Box key={`seat-${c.id}`} flexDirection="row" gap={1} alignItems="center" minWidth={22}>
+              {avatar(c.id, st)}
+              <Box flexDirection="column">
+                <Box flexDirection="row" gap={1}>
+                  <Text bold>{last(c.id)}</Text>
+                  {redTeam === c.id ? pill('RED TEAM', 'error') : null}
+                </Box>
+                <Text dimColor size="caption">{c.seat}</Text>
+                <Box flexDirection="row" gap={1}>
+                  {st ? pill(stanceWord(st), stanceColor(st)) : <Text dimColor size="caption">waiting</Text>}
+                  {sc ? <Text bold color={voteColor(sc.vote)}>{sc.vote}</Text> : null}
+                </Box>
+              </Box>
             </Box>
           )
         })}
-        <Text dimColor>{rule}</Text>
+      </Box>
+    )
 
-        {/* verdict, once there is one */}
-        {s.decision ? (
-          <Box flexDirection="column">
-            <Text dimColor>THE COUNCIL HAS DECIDED</Text>
-            <Box flexDirection="row" gap={2} alignItems="flex-end">
-              <Text bold color={voteColor(s.decision.verdict)} size="title">{s.decision.verdict}</Text>
-              {s.decision.confidence !== null ? <Text dimColor>confidence {s.decision.confidence} / 100</Text> : null}
-            </Box>
-            {s.decision.headline ? <Text italic color="warning">{s.decision.headline}</Text> : null}
-            <Text> </Text>
+    const verdict = s.decision ? (
+      <Box flexDirection="column" borderStyle="round" borderColor={voteColor(s.decision.verdict)} paddingX={1} marginTop={1}>
+        <Text dimColor size="caption">THE COUNCIL HAS DECIDED</Text>
+        <Box flexDirection="row" gap={2} alignItems="flex-end">
+          <Text bold color={voteColor(s.decision.verdict)} size="title">{s.decision.verdict}</Text>
+          {s.decision.confidence !== null ? <Text dimColor>confidence {s.decision.confidence} / 100</Text> : null}
+        </Box>
+        {s.decision.headline ? <Text italic color="warning">{s.decision.headline}</Text> : null}
+        {Object.keys(s.decision.averages).length ? (
+          <Box flexDirection="column" marginTop={1}>
             {Object.entries(s.decision.averages).map(([k, v]) => {
               const w = Math.max(0, Math.min(20, Math.round(v * 2)))
               return (
                 <Box key={`avg-${k}`} flexDirection="row" gap={1}>
-                  <Text dimColor>{pad(k, 13)}</Text>
+                  <Text dimColor size="caption">{(k + '             ').slice(0, 13)}</Text>
                   <Text color="warning">{'█'.repeat(w)}</Text>
                   <Text dimColor>{'░'.repeat(20 - w)}</Text>
                   <Text bold>{v.toFixed(1)}</Text>
                 </Box>
               )
             })}
-            {s.decision.dissent ? (
-              <Box flexDirection="column" marginTop={1}>
-                <Text dimColor>DISSENT · {last(s.decision.dissent.speaker)}</Text>
-                <Text italic>“{s.scores[s.decision.dissent.speaker]?.one_line || s.decision.dissent.text}”</Text>
-              </Box>
-            ) : null}
-            {b.replayPath || b.reportPath ? (
-              <Box flexDirection="row" gap={1} marginTop={1}>
-                {b.replayPath ? (
-                  <Button key="open-replay" variant="primary" onPress={() => { void $.process.run(['open', b.replayPath as string]) }}>
-                    Open replay
-                  </Button>
-                ) : null}
-                {b.reportPath ? (
-                  <Button key="open-report" onPress={() => { void $.process.run(['open', b.reportPath as string]) }}>
-                    Open PDF
-                  </Button>
-                ) : null}
-              </Box>
-            ) : null}
-            <Text dimColor>{rule}</Text>
           </Box>
         ) : null}
-
-        {/* the round in progress (or the last one) */}
-        {latestRound ? (
-          <Box flexDirection="column">
-            <Text bold color="warning">ROUND {latestRound.number} · {latestRound.title.toUpperCase()}</Text>
-            {latestRound.chair_intro ? <Text dimColor>{latestRound.chair_intro}</Text> : null}
-            {latestRound.turns.map((t, i) => (
-              <Box key={`turn-${latestRound.number}-${i}`} flexDirection="column" marginTop={1}>
-                <Box flexDirection="row" gap={1}>
-                  <Text bold>{last(t.speaker)}</Text>
-                  <Text color={stanceColor(t.stance)}>{stanceWord(t.stance)}</Text>
-                  {t.reply_to ? <Text dimColor>↩ {last(t.reply_to)}</Text> : null}
-                  {latestRound.red_team === t.speaker ? <Text color="error">🎯</Text> : null}
-                </Box>
-                <Text italic color="warning">“{t.pull_quote || t.text.slice(0, 110)}”</Text>
-              </Box>
-            ))}
-            {latestRound.chair_summary ? (
-              <Box flexDirection="column" marginTop={1}>
-                <Text dimColor>The Chair: {latestRound.chair_summary}</Text>
-              </Box>
+        {s.decision.dissent ? (
+          <Box flexDirection="row" gap={1} marginTop={1} alignItems="center">
+            {avatar(s.decision.dissent.speaker, 'against', 36)}
+            <Box flexDirection="column">
+              <Text dimColor size="caption">DISSENT · {last(s.decision.dissent.speaker)} · {seatOf(s.decision.dissent.speaker)}</Text>
+              <Text italic>“{s.scores[s.decision.dissent.speaker]?.one_line || s.decision.dissent.text}”</Text>
+            </Box>
+          </Box>
+        ) : null}
+        {b.replayPath || b.reportPath ? (
+          <Box flexDirection="row" gap={1} marginTop={1} marginBottom={1}>
+            {b.replayPath ? (
+              <Button key="open-replay" variant="primary" onPress={() => { void $.process.run(['open', b.replayPath as string]) }}>
+                ▶ Open replay
+              </Button>
+            ) : null}
+            {b.reportPath ? (
+              <Button key="open-report" onPress={() => { void $.process.run(['open', b.reportPath as string]) }}>
+                Open PDF
+              </Button>
             ) : null}
           </Box>
-        ) : s.brief ? (
-          <Box flexDirection="column">
-            <Text bold color="warning">THE BRIEF</Text>
-            <Text>{s.brief}</Text>
-            <Text dimColor>Round one is being argued.</Text>
-          </Box>
-        ) : (
-          <Text dimColor>The Chair is writing the brief.</Text>
-        )}
+        ) : null}
+      </Box>
+    ) : null
 
-        {/* earlier rounds, one line each */}
-        {s.rounds.length > 1 ? (
-          <Box flexDirection="column" marginTop={1}>
-            <Text dimColor>{rule}</Text>
-            {s.rounds.slice(0, -1).map(r => (
-              <Text key={`prev-${r.number}`} dimColor>
-                R{r.number} {r.title}: {r.turns.map(t => `${last(t.speaker)} ${stanceWord(t.stance).toLowerCase()}`).join(' · ')}
-              </Text>
-            ))}
+    const round = latestRound ? (
+      <Box flexDirection="column" marginTop={1}>
+        <Box flexDirection="row" gap={1} alignItems="center">
+          <Text bold color="warning">ROUND {latestRound.number}</Text>
+          <Text dimColor>·</Text>
+          <Text bold>{latestRound.title}</Text>
+        </Box>
+        {latestRound.chair_intro ? <Text dimColor size="caption">{latestRound.chair_intro}</Text> : null}
+        {latestRound.turns.map((t, i) => (
+          <Box key={`turn-${latestRound.number}-${i}`} flexDirection="row" gap={1} marginTop={1} borderStyle="round" borderDimColor paddingX={1}>
+            {avatar(t.speaker, t.stance, 36)}
+            <Box flexDirection="column" flexGrow={1}>
+              <Box flexDirection="row" gap={1} alignItems="center">
+                <Text bold>{last(t.speaker)}</Text>
+                {pill(stanceWord(t.stance), stanceColor(t.stance))}
+                {t.reply_to ? <Text dimColor size="caption">↩ {last(t.reply_to)}</Text> : null}
+                {latestRound.red_team === t.speaker ? pill('RED TEAM', 'error') : null}
+              </Box>
+              <Text italic color="warning">“{t.pull_quote || t.text.slice(0, 110)}”</Text>
+            </Box>
+          </Box>
+        ))}
+        {latestRound.chair_summary ? (
+          <Box flexDirection="row" gap={1} marginTop={1} alignItems="center">
+            {avatar('chair', undefined, 28)}
+            <Text dimColor italic>{latestRound.chair_summary}</Text>
           </Box>
         ) : null}
+      </Box>
+    ) : s.brief ? (
+      <Box flexDirection="column" borderStyle="round" borderDimColor paddingX={1} marginTop={1}>
+        <Text bold color="warning">THE BRIEF</Text>
+        <Text>{s.brief}</Text>
+        <Text dimColor size="caption">Round one is being argued.</Text>
+      </Box>
+    ) : (
+      <Text dimColor>The Chair is writing the brief.</Text>
+    )
 
-        {/* talk to the room */}
-        {Input && !b.composing ? (
-          <Box flexDirection="column" marginTop={1}>
-            <Text dimColor>{rule}</Text>
-            <Input
-              key="followup"
-              label={s.decision ? 'Ask the council a follow-up' : 'Tell the council something mid-debate'}
-              placeholder="e.g. What if I only raise it for new customers?"
-              submitLabel="Ask"
-              onSubmit={value => { void followUp($, value) }}
-            />
-            <Button key="new-question" plain onPress={() => { void openComposer($) }}>
-              <Text dimColor>+ new decision</Text>
-            </Button>
-          </Box>
-        ) : null}
-        <Text> </Text>
-        <Text dimColor>AI personas, not the real people · @Spencer.Ai.Tribe</Text>
+    const earlier = s.rounds.length > 1 ? (
+      <Box flexDirection="column" marginTop={1}>
+        {s.rounds.slice(0, -1).map(r => (
+          <Text key={`prev-${r.number}`} dimColor size="caption">
+            R{r.number} {r.title}: {r.turns.map(t => `${last(t.speaker)} ${stanceWord(t.stance).toLowerCase()}`).join(' · ')}
+          </Text>
+        ))}
+      </Box>
+    ) : null
+
+    const talk = Input && !b.composing ? (
+      <Box flexDirection="column" borderStyle="round" borderDimColor paddingX={1} marginTop={1}>
+        <Input
+          key="followup"
+          label={s.decision ? 'Ask the council a follow-up' : 'Tell the council something mid-debate'}
+          placeholder="What if I only raise it for new customers?"
+          submitLabel="Ask"
+          onSubmit={value => { void followUp($, value) }}
+        />
+        <Button key="new-question" plain onPress={() => { void openComposer($) }}>
+          <Text dimColor size="caption">+ new decision</Text>
+        </Button>
+      </Box>
+    ) : null
+
+    return (
+      <Box flexDirection="column" paddingX={1} paddingY={1}>
+        {b.composing ? composer : null}
+        {header}
+        {seats}
+        {verdict}
+        {round}
+        {earlier}
+        {talk}
+        <Text dimColor size="caption">AI personas, not the real people · @Spencer.Ai.Tribe</Text>
       </Box>
     )
   })
